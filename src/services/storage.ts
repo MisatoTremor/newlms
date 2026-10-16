@@ -521,4 +521,12 @@ export {
   DB_NAME,
   DB_VERSION,
   SCHEMA_VERSION,
+  StorageService,
+  getStorageService,
+  resetStorageService,
+};
+
+export type {
+  StorageEventType,
+  StorageEvent,
 };

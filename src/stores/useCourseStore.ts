@@ -18,7 +18,8 @@ import type {
   HistoryState,
   EditorAction,
 } from '../types';
-import { getStorageService, StorageEventType } from '../services/storage';
+import { getStorageService } from '../services/storage';
+import type { StorageEventType } from '../services/storage';
 import {
   createCourse,
   createChapter,
