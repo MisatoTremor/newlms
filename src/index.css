@@ -1,0 +1,276 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   NEWLMS - Global Styles
+   ============================================ */
+
+/* Box Sizing */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Reset */
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Font Family */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Focus Styles */
+:focus-visible {
+  outline: 2px solid #4F46E5;
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background-color: #4F46E5;
+  color: white;
+}
+
+/* Drag and Drop */
+.dragging {
+  opacity: 0.5;
+}
+
+.drag-over {
+  border: 2px dashed #4F46E5;
+  background-color: rgba(79, 70, 229, 0.1);
+}
+
+/* Resize Handles */
+.resize-handle {
+  width: 8px;
+  height: 8px;
+  background-color: white;
+  border: 1px solid #4F46E5;
+  border-radius: 2px;
+  position: absolute;
+}
+
+/* Canvas Grid */
+.canvas-grid {
+  background-image: 
+    linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+    linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Element Styles */
+.element-text {
+  outline: none;
+  user-select: text;
+}
+
+.element-image {
+  pointer-events: none;
+}
+
+.element-button {
+  cursor: pointer;
+}
+
+/* Timeline */
+.timeline {
+  user-select: none;
+}
+
+.timeline-bar {
+  cursor: pointer;
+}
+
+.timeline-bar:hover {
+  filter: brightness(1.1);
+}
+
+.timeline-bar.selected {
+  filter: brightness(1.2);
+}
+
+/* Playhead */
+.playhead {
+  cursor: ew-resize;
+}
+
+/* Toolbar */
+.toolbar-button {
+  transition: all 0.2s ease;
+}
+
+.toolbar-button:hover {
+  transform: scale(1.1);
+}
+
+.toolbar-button.selected {
+  background-color: #4F46E5;
+  color: white;
+}
+
+/* Properties Panel */
+.property-section {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.property-section:last-child {
+  border-bottom: none;
+}
+
+/* Input Styles */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Color Picker */
+.color-picker {
+  cursor: pointer;
+}
+
+/* Slide Overview */
+.slide-thumbnail {
+  transition: all 0.2s ease;
+}
+
+.slide-thumbnail:hover {
+  transform: scale(1.05);
+}
+
+.slide-thumbnail.selected {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 2px #4F46E5;
+}
+
+/* Chapter Card */
+.chapter-card {
+  transition: all 0.2s ease;
+}
+
+.chapter-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Player */
+.player-controls {
+  backdrop-filter: blur(10px);
+}
+
+.player-button {
+  transition: all 0.2s ease;
+}
+
+.player-button:hover {
+  transform: scale(1.1);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Loading State */
+.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Error State */
+.error {
+  color: #ef4444;
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+/* Success State */
+.success {
+  color: #22c55e;
+  background-color: #d1fae5;
+  border: 1px solid #a7f3d0;
+}
+
+/* Warning State */
+.warning {
+  color: #f59e0b;
+  background-color: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+/* Info State */
+.info {
+  color: #3b82f6;
+  background-color: #dbeafe;
+  border: 1px solid #bfdbfe;
+}
