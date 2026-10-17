@@ -300,6 +300,10 @@ class StorageService {
   // LISTENERS
   // ============================================
 
+  public on(listener: (event: StorageEvent) => void): void {
+    this.addListener(listener);
+  }
+
   public addListener(listener: (event: StorageEvent) => void): void {
     this.listeners.push(listener);
   }
@@ -353,6 +357,20 @@ class StorageService {
 
       request.onsuccess = () => resolve(request.result || null);
       request.onerror = () => resolve(null);
+    });
+  }
+
+  public async getLastActiveCourseId(): Promise<ID | null> {
+    const meta = await this.loadMeta();
+    return meta?.lastActiveCourseId || null;
+  }
+
+  public async setLastActiveCourseId(courseId: ID | null): Promise<void> {
+    const meta = await this.loadMeta();
+    await this.saveMeta({
+      version: SCHEMA_VERSION,
+      lastActiveCourseId: courseId,
+      lastUpdated: Date.now(),
     });
   }
 }
