@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useCourseStore } from '../../stores/useCourseStore';
-import { FiSave, FiUndo, FiRedo, FiPlay, FiSquare, FiEye, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { FiSave, FiArrowLeft, FiArrowRight, FiPlay, FiSquare, FiEye, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { MdOutlineTimeline } from 'react-icons/md';
 
 export const TopBar: React.FC = () => {
@@ -158,7 +158,7 @@ export const TopBar: React.FC = () => {
             }`}
             title="Rückgängig (Ctrl+Z)"
           >
-            <FiUndo size={18} />
+            <FiArrowLeft size={18} />
           </button>
           
           <button
@@ -169,7 +169,7 @@ export const TopBar: React.FC = () => {
             }`}
             title="Wiederholen (Ctrl+Y)"
           >
-            <FiRedo size={18} />
+            <FiArrowRight size={18} />
           </button>
 
           <button
@@ -177,7 +177,7 @@ export const TopBar: React.FC = () => {
             className={`p-2 rounded hover:bg-gray-100 ${isPlaying ? 'text-blue-500' : 'text-gray-600'}`}
             title="Abspielen/Pausieren"
           >
-            {isPlaying ? <FiStop size={18} /> : <FiPlay size={18} />}
+            {isPlaying ? <FiSquare size={18} /> : <FiPlay size={18} />}
           </button>
 
           <button

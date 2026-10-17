@@ -17,7 +17,7 @@ import type { ToolType } from '../../types';
 // STYLES
 // ============================================
 
-const EditorLayout: React.FC = () => {
+export const EditorLayout: React.FC = () => {
   const {
     course,
     editorState,

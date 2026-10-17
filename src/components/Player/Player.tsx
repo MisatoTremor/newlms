@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useCourseStore } from '../../stores/useCourseStore';
-import { FiPlay, FiPause, FiStepBackward, FiStepForward, FiVolume2, FiVolumeX, FiList, FiX } from 'react-icons/fi';
+import { FiPlay, FiPause, FiSkipBack, FiSkipForward, FiVolume2, FiVolumeX, FiList, FiX } from 'react-icons/fi';
 import { renderElement } from '../Editor/ElementRenderer';
 import type { Slide, SlideElement } from '../../types';
 
@@ -464,7 +464,7 @@ export const Player: React.FC = () => {
           onClick={handlePreviousSlide}
           className="p-3 text-white hover:bg-white hover:bg-opacity-20 rounded-full transition-colors"
         >
-          <FiStepBackward size={20} />
+          <FiSkipBack size={20} />
         </button>
         
         <button
@@ -478,7 +478,7 @@ export const Player: React.FC = () => {
           onClick={handleNextSlide}
           className="p-3 text-white hover:bg-white hover:bg-opacity-20 rounded-full transition-colors"
         >
-          <FiStepForward size={20} />
+          <FiSkipForward size={20} />
         </button>
         
         <button

@@ -16,7 +16,6 @@ import {
   FiAlignCenter,
   FiAlignRight,
   FiAlignJustify,
-  FiDistributeHorizontal,
 } from 'react-icons/fi';
 import { createTextElement, createImageElement, createRectangleElement, createCircleElement, createButtonElement } from '../../models/course';
 
@@ -171,7 +170,7 @@ export const Toolbar: React.FC = () => {
           className="w-10 h-10 flex items-center justify-center rounded hover:bg-gray-100 text-gray-600"
           title="Verteilen"
         >
-          <FiDistributeHorizontal size={18} />
+          <FiLayers size={18} />
         </button>
       </div>
     </div>

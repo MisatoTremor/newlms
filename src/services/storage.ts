@@ -31,7 +31,7 @@ interface StorageMeta {
 // STORAGE SERVICE CLASS
 // ============================================
 
-export class StorageService {
+class StorageService {
   private db: IDBDatabase | null = null;
   private isReady: boolean = false;
   private readyPromise: Promise<void> | null = null;
@@ -50,65 +50,50 @@ export class StorageService {
       return this.readyPromise;
     }
 
-    this.readyPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+    this.readyPromise = new Promise(async (resolve, reject) => {
+      try {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-      request.onerror = (event) => {
-        console.error('StorageService: Error opening database', event);
-        this.isReady = false;
-        reject(new Error('Failed to open IndexedDB'));
-      };
+        request.onerror = (event) => {
+          console.error('Database error:', event);
+          reject(new Error('Failed to open database'));
+        };
 
-      request.onsuccess = (event) => {
-        this.db = request.result;
-        this.isReady = true;
-        this.setupEventListeners();
-        resolve();
-      };
+        request.onsuccess = (event) => {
+          this.db = (event.target as IDBOpenDBRequest).result;
+          this.isReady = true;
+          this.readyPromise = null;
+          resolve();
+        };
 
-      request.onupgradeneeded = (event) => {
-        const db = request.result;
-        
-        // Create stores if they don't exist
-        if (!db.objectStoreNames.contains(COURSES_STORE)) {
-          db.createObjectStore(COURSES_STORE, { keyPath: 'id' });
-        }
-        if (!db.objectStoreNames.contains(MEDIA_STORE)) {
-          db.createObjectStore(MEDIA_STORE, { keyPath: 'id' });
-        }
-        if (!db.objectStoreNames.contains(META_STORE)) {
-          db.createObjectStore(META_STORE, { keyPath: 'key' });
-        }
-      };
+        request.onupgradeneeded = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          
+          if (!db.objectStoreNames.contains(COURSES_STORE)) {
+            db.createObjectStore(COURSES_STORE, { keyPath: 'id' });
+          }
+          
+          if (!db.objectStoreNames.contains(MEDIA_STORE)) {
+            db.createObjectStore(MEDIA_STORE, { keyPath: 'id' });
+          }
+          
+          if (!db.objectStoreNames.contains(META_STORE)) {
+            db.createObjectStore(META_STORE, { keyPath: 'id' });
+          }
+        };
+      } catch (error) {
+        reject(error);
+      }
     });
 
-    await this.readyPromise;
+    return this.readyPromise;
   }
 
-  private setupEventListeners(): void {
-    if (!this.db) return;
-
-    this.db.onclose = () => {
-      this.isReady = false;
-      this.db = null;
-    };
-
-    this.db.onversionchange = () => {
-      this.db?.close();
-      this.isReady = false;
-    };
-  }
-
-  // ============================================
-  // READY CHECK
-  // ============================================
-
-  public async ensureReady(): Promise<void> {
-    if (this.isReady) return;
-    if (this.readyPromise) {
-      return this.readyPromise;
+  private async ensureReady(): Promise<void> {
+    if (this.isReady) {
+      return;
     }
-    await this.init();
+    await this.readyPromise;
   }
 
   // ============================================
@@ -123,34 +108,17 @@ export class StorageService {
     }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([COURSES_STORE, META_STORE], 'readwrite');
-      const coursesStore = transaction.objectStore(COURSES_STORE);
-      const metaStore = transaction.objectStore(META_STORE);
+      const transaction = this.db!.transaction([COURSES_STORE], 'readwrite');
+      const store = transaction.objectStore(COURSES_STORE);
+      const request = store.put(course);
 
-      // Save course
-      const saveRequest = coursesStore.put(course);
-
-      saveRequest.onerror = () => {
-        reject(new Error('Failed to save course'));
-      };
-
-      // Update last active course
-      const metaRequest = metaStore.put({
-        key: 'lastActiveCourseId',
-        value: course.id,
-      });
-
-      metaRequest.onerror = () => {
-        // Non-critical, don't reject
-      };
-
-      transaction.oncomplete = () => {
-        this.emit({ type: 'courseSaved', data: { courseId: course.id } });
+      request.onsuccess = () => {
+        this.notifyListeners({ type: 'courseSaved', data: course, timestamp: Date.now() });
         resolve();
       };
 
-      transaction.onerror = () => {
-        reject(new Error('Transaction failed'));
+      request.onerror = (event) => {
+        reject(new Error('Failed to save course'));
       };
     });
   }
@@ -162,22 +130,17 @@ export class StorageService {
       throw new Error('Database not ready');
     }
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(COURSES_STORE, 'readonly');
+    return new Promise((resolve) => {
+      const transaction = this.db!.transaction([COURSES_STORE], 'readonly');
       const store = transaction.objectStore(COURSES_STORE);
-
       const request = store.get(courseId);
 
-      request.onerror = () => {
-        reject(new Error('Failed to load course'));
+      request.onsuccess = () => {
+        resolve(request.result || null);
       };
 
-      request.onsuccess = () => {
-        if (request.result) {
-          resolve(request.result);
-        } else {
-          resolve(null);
-        }
+      request.onerror = () => {
+        resolve(null);
       };
     });
   }
@@ -189,18 +152,17 @@ export class StorageService {
       throw new Error('Database not ready');
     }
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(COURSES_STORE, 'readonly');
+    return new Promise((resolve) => {
+      const transaction = this.db!.transaction([COURSES_STORE], 'readonly');
       const store = transaction.objectStore(COURSES_STORE);
-
       const request = store.getAll();
 
-      request.onerror = () => {
-        reject(new Error('Failed to load all courses'));
+      request.onsuccess = () => {
+        resolve(request.result);
       };
 
-      request.onsuccess = () => {
-        resolve(request.result || []);
+      request.onerror = () => {
+        resolve([]);
       };
     });
   }
@@ -213,111 +175,17 @@ export class StorageService {
     }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([COURSES_STORE, MEDIA_STORE], 'readwrite');
-      const coursesStore = transaction.objectStore(COURSES_STORE);
-      const mediaStore = transaction.objectStore(MEDIA_STORE);
+      const transaction = this.db!.transaction([COURSES_STORE], 'readwrite');
+      const store = transaction.objectStore(COURSES_STORE);
+      const request = store.delete(courseId);
 
-      // Delete course
-      const deleteCourseRequest = coursesStore.delete(courseId);
+      request.onsuccess = () => {
+        this.notifyListeners({ type: 'courseDeleted', data: { courseId }, timestamp: Date.now() });
+        resolve();
+      };
 
-      deleteCourseRequest.onerror = () => {
+      request.onerror = (event) => {
         reject(new Error('Failed to delete course'));
-      };
-
-      // Delete all media associated with this course
-      // (In a real implementation, we'd need to track which media belongs to which course)
-      // For now, we'll delete all media when a course is deleted
-      const deleteMediaRequest = mediaStore.clear();
-
-      deleteMediaRequest.onerror = () => {
-        // Non-critical
-      };
-
-      transaction.oncomplete = () => {
-        this.emit({ type: 'courseDeleted', data: { courseId } });
-        resolve();
-      };
-
-      transaction.onerror = () => {
-        reject(new Error('Transaction failed'));
-      };
-    });
-  }
-
-  public async getLastActiveCourseId(): Promise<ID | null> {
-    await this.ensureReady();
-    
-    if (!this.db) {
-      throw new Error('Database not ready');
-    }
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(META_STORE, 'readonly');
-      const store = transaction.objectStore(META_STORE);
-
-      const request = store.get('lastActiveCourseId');
-
-      request.onerror = () => {
-        reject(new Error('Failed to get last active course'));
-      };
-
-      request.onsuccess = () => {
-        resolve(request.result?.value || null);
-      };
-    });
-  }
-
-  // ============================================
-  // MEDIA OPERATIONS
-  // ============================================
-
-  public async saveMedia(asset: MediaAsset): Promise<void> {
-    await this.ensureReady();
-    
-    if (!this.db) {
-      throw new Error('Database not ready');
-    }
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(MEDIA_STORE, 'readwrite');
-      const store = transaction.objectStore(MEDIA_STORE);
-
-      const request = store.put(asset);
-
-      request.onerror = () => {
-        reject(new Error('Failed to save media'));
-      };
-
-      transaction.oncomplete = () => {
-        this.emit({ type: 'mediaSaved', data: { mediaId: asset.id } });
-        resolve();
-      };
-
-      transaction.onerror = () => {
-        reject(new Error('Transaction failed'));
-      };
-    });
-  }
-
-  public async loadMedia(mediaId: ID): Promise<MediaAsset | null> {
-    await this.ensureReady();
-    
-    if (!this.db) {
-      throw new Error('Database not ready');
-    }
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(MEDIA_STORE, 'readonly');
-      const store = transaction.objectStore(MEDIA_STORE);
-
-      const request = store.get(mediaId);
-
-      request.onerror = () => {
-        reject(new Error('Failed to load media'));
-      };
-
-      request.onsuccess = () => {
-        resolve(request.result || null);
       };
     });
   }
@@ -329,23 +197,22 @@ export class StorageService {
       throw new Error('Database not ready');
     }
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(MEDIA_STORE, 'readonly');
+    return new Promise((resolve) => {
+      const transaction = this.db!.transaction([MEDIA_STORE], 'readonly');
       const store = transaction.objectStore(MEDIA_STORE);
-
       const request = store.getAll();
 
-      request.onerror = () => {
-        reject(new Error('Failed to load all media'));
+      request.onsuccess = () => {
+        resolve(request.result);
       };
 
-      request.onsuccess = () => {
-        resolve(request.result || []);
+      request.onerror = () => {
+        resolve([]);
       };
     });
   }
 
-  public async deleteMedia(mediaId: ID): Promise<void> {
+  public async saveMedia(asset: MediaAsset): Promise<void> {
     await this.ensureReady();
     
     if (!this.db) {
@@ -353,50 +220,47 @@ export class StorageService {
     }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(MEDIA_STORE, 'readwrite');
+      const transaction = this.db!.transaction([MEDIA_STORE], 'readwrite');
       const store = transaction.objectStore(MEDIA_STORE);
+      const request = store.put(asset);
 
-      const request = store.delete(mediaId);
-
-      request.onerror = () => {
-        reject(new Error('Failed to delete media'));
-      };
-
-      transaction.oncomplete = () => {
-        this.emit({ type: 'mediaDeleted', data: { mediaId } });
+      request.onsuccess = () => {
+        this.notifyListeners({ type: 'mediaSaved', data: asset, timestamp: Date.now() });
         resolve();
       };
 
-      transaction.onerror = () => {
-        reject(new Error('Transaction failed'));
+      request.onerror = (event) => {
+        reject(new Error('Failed to save media'));
       };
     });
   }
 
-  public async saveMediaData(dataUrl: string, fileName: string, mimeType: string): Promise<MediaAsset> {
-    const asset: MediaAsset = {
-      id: uuidv4(),
-      name: fileName,
-      type: mimeType.startsWith('image/') ? 'image' : 'audio',
-      dataUrl,
-      fileName,
-      fileSize: dataUrl.length,
-      mimeType,
-      createdAt: Date.now(),
-    };
+  public async deleteMedia(assetId: ID): Promise<void> {
+    await this.ensureReady();
+    
+    if (!this.db) {
+      throw new Error('Database not ready');
+    }
 
-    await this.saveMedia(asset);
-    return asset;
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([MEDIA_STORE], 'readwrite');
+      const store = transaction.objectStore(MEDIA_STORE);
+      const request = store.delete(assetId);
+
+      request.onsuccess = () => {
+        this.notifyListeners({ type: 'mediaDeleted', data: { assetId }, timestamp: Date.now() });
+        resolve();
+      };
+
+      request.onerror = (event) => {
+        reject(new Error('Failed to delete media'));
+      };
+    });
   }
-
-  // ============================================
-  // EXPORT/IMPORT
-  // ============================================
 
   public async exportCourse(courseId: ID): Promise<{ course: Course; media: MediaAsset[] } | null> {
     const course = await this.loadCourse(courseId);
     if (!course) return null;
-
     const media = await this.loadAllMedia();
     return { course, media };
   }
@@ -418,46 +282,47 @@ export class StorageService {
         mediaStore.put(asset);
       }
 
-      // Save course
+      // Save the course
       coursesStore.put(course);
 
       transaction.oncomplete = () => {
-        this.emit({ type: 'courseImported', data: { courseId: course.id } });
+        this.notifyListeners({ type: 'courseImported', data: course, timestamp: Date.now() });
         resolve();
       };
 
-      transaction.onerror = () => {
+      transaction.onerror = (event) => {
         reject(new Error('Failed to import course'));
       };
     });
   }
 
   // ============================================
-  // EVENT SYSTEM
+  // LISTENERS
   // ============================================
 
-  public on(listener: (event: StorageEvent) => void): () => void {
+  public addListener(listener: (event: StorageEvent) => void): void {
     this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter((l) => l !== listener);
-    };
   }
 
-  private emit(event: StorageEvent): void {
-    for (const listener of this.listeners) {
+  public removeListener(listener: (event: StorageEvent) => void): void {
+    this.listeners = this.listeners.filter(l => l !== listener);
+  }
+
+  private notifyListeners(event: StorageEvent): void {
+    this.listeners.forEach(listener => {
       try {
         listener(event);
       } catch (error) {
-        console.error('StorageService: Error in event listener', error);
+        console.error('Error in storage listener:', error);
       }
-    }
+    });
   }
 
   // ============================================
-  // CLEAR ALL DATA (for testing/dev)
+  // META OPERATIONS
   // ============================================
 
-  public async clearAll(): Promise<void> {
+  public async saveMeta(meta: StorageMeta): Promise<void> {
     await this.ensureReady();
     
     if (!this.db) {
@@ -465,19 +330,29 @@ export class StorageService {
     }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([COURSES_STORE, MEDIA_STORE, META_STORE], 'readwrite');
-      
-      transaction.objectStore(COURSES_STORE).clear();
-      transaction.objectStore(MEDIA_STORE).clear();
-      transaction.objectStore(META_STORE).clear();
+      const transaction = this.db!.transaction([META_STORE], 'readwrite');
+      const store = transaction.objectStore(META_STORE);
+      const request = store.put({ id: 'meta', ...meta });
 
-      transaction.oncomplete = () => {
-        resolve();
-      };
+      request.onsuccess = () => resolve();
+      request.onerror = (event) => reject(new Error('Failed to save meta'));
+    });
+  }
 
-      transaction.onerror = () => {
-        reject(new Error('Failed to clear all data'));
-      };
+  public async loadMeta(): Promise<StorageMeta | null> {
+    await this.ensureReady();
+    
+    if (!this.db) {
+      throw new Error('Database not ready');
+    }
+
+    return new Promise((resolve) => {
+      const transaction = this.db!.transaction([META_STORE], 'readonly');
+      const store = transaction.objectStore(META_STORE);
+      const request = store.get('meta');
+
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => resolve(null);
     });
   }
 }
@@ -500,14 +375,14 @@ export interface StorageEvent {
 
 let storageService: StorageService | null = null;
 
-export function getStorageService(): StorageService {
+function getStorageService(): StorageService {
   if (!storageService) {
     storageService = new StorageService();
   }
   return storageService;
 }
 
-export function resetStorageService(): void {
+function resetStorageService(): void {
   if (storageService) {
     storageService = null;
   }
@@ -518,11 +393,12 @@ export function resetStorageService(): void {
 // ============================================
 
 export {
+  StorageService,
+  getStorageService,
+  resetStorageService,
   DB_NAME,
   DB_VERSION,
   SCHEMA_VERSION,
-  getStorageService,
-  resetStorageService,
 };
 
 export type {

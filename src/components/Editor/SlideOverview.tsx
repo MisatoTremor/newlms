@@ -5,7 +5,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useCourseStore } from '../../stores/useCourseStore';
 import { FiChevronDown, FiChevronUp, FiPlus, FiTrash2, FiCopy, FiMoreVertical, FiEye, FiEyeOff } from 'react-icons/fi';
-import { createSlide } from '../../models/course';
 
 // ============================================
 // SLIDE OVERVIEW COMPONENT
